@@ -14,14 +14,6 @@ def get_connection():
 
 def init_db():
     conn = get_connection()
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS clips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            content TEXT NOT NULL,
-            source TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            comment TEXT,
     try:
         c = conn.cursor()
         c.execute('''
