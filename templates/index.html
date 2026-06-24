@@ -78,6 +78,28 @@
                     </a>
                     {% endif %}
                 </div>
+
+                <div class="reaction-bar">
+                    {% for emoji, authors in clip.reactions.items() %}
+                    <div class="reaction-pill" onclick="toggleReaction({{ clip.id }}, '{{ emoji }}')" title="{{ authors | join(', ') }}">
+                        <span>{{ emoji }}</span>
+                        <span>{{ authors | length }}</span>
+                    </div>
+                    {% endfor %}
+                    <div style="position: relative;">
+                        <button class="add-reaction-btn" onclick="togglePicker(event, {{ clip.id }})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                        <div class="reaction-picker" id="picker-{{ clip.id }}">
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '👍')">👍</span>
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '❤️')">❤️</span>
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '😂')">😂</span>
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '🔥')">🔥</span>
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '👀')">👀</span>
+                            <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '🚀')">🚀</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -158,6 +180,34 @@
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy: ', err);
+            }
+        }
+        
+        function togglePicker(e, clipId) {
+            e.stopPropagation();
+            document.querySelectorAll('.reaction-picker').forEach(p => {
+                if (p.id !== 'picker-' + clipId) p.classList.remove('show');
+            });
+            document.getElementById('picker-' + clipId).classList.toggle('show');
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('show'));
+        });
+
+        async function toggleReaction(clipId, emoji) {
+            const author = localStorage.getItem('streamAuthor') || 'Anonymous';
+            try {
+                const response = await fetch(`/api/clip/${clipId}/reaction`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emoji: emoji, author: author })
+                });
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.error("Failed to toggle reaction:", err);
             }
         }
         

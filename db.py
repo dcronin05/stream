@@ -2,6 +2,7 @@ import sqlite3
 import time
 from datetime import datetime
 import os
+import json
 
 DB_PATH = os.environ.get("DB_PATH", "data/clipboard.db")
 
@@ -36,6 +37,10 @@ def init_db():
         c.execute("ALTER TABLE clips ADD COLUMN author TEXT DEFAULT 'Anonymous'")
     except sqlite3.OperationalError:
         pass # Column already exists
+    try:
+        c.execute("ALTER TABLE clips ADD COLUMN reactions TEXT DEFAULT '{}'")
+    except sqlite3.OperationalError:
+        pass # Column already exists
     conn.commit()
     conn.close()
 
@@ -68,13 +73,46 @@ def update_clip_comment(clip_id: int, comment: str):
     finally:
         conn.close()
 
+def update_reaction(clip_id: int, emoji: str, author: str):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute('SELECT reactions FROM clips WHERE id = ?', (clip_id,))
+        row = c.fetchone()
+        if not row: return
+        
+        try:
+            reactions = json.loads(row[0]) if row[0] else {}
+        except:
+            reactions = {}
+            
+        if emoji not in reactions:
+            reactions[emoji] = []
+            
+        if author in reactions[emoji]:
+            reactions[emoji].remove(author)
+            if not reactions[emoji]:
+                del reactions[emoji]
+        else:
+            reactions[emoji].append(author)
+            
+        c.execute('UPDATE clips SET reactions = ? WHERE id = ?', (json.dumps(reactions), clip_id))
+        conn.commit()
+        time.sleep(0.05)
+    finally:
+        conn.close()
+
 def get_clips(limit: int = 50):
     conn = get_connection()
     try:
         c = conn.cursor()
-        c.execute('SELECT id, content, source, timestamp, comment, item_type, author FROM clips ORDER BY timestamp DESC LIMIT ?', (limit,))
+        c.execute('SELECT id, content, source, timestamp, comment, item_type, author, reactions FROM clips ORDER BY timestamp DESC LIMIT ?', (limit,))
         clips = []
         for row in c.fetchall():
+            try:
+                reactions = json.loads(row[7]) if row[7] else {}
+            except:
+                reactions = {}
             clips.append({
                 "id": row[0],
                 "content": row[1],
@@ -82,7 +120,8 @@ def get_clips(limit: int = 50):
                 "timestamp": row[3],
                 "comment": row[4],
                 "item_type": row[5] or "text",
-                "author": row[6] or "Anonymous"
+                "author": row[6] or "Anonymous",
+                "reactions": reactions
             })
         return clips
     finally:

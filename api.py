@@ -107,6 +107,15 @@ async def update_comment(clip_id: int, req: CommentRequest):
     db.update_clip_comment(clip_id, req.comment)
     return {"status": "success"}
 
+class ReactionRequest(BaseModel):
+    emoji: str
+    author: str
+
+@app.put("/api/clip/{clip_id}/reaction")
+async def toggle_reaction(clip_id: int, req: ReactionRequest):
+    db.update_reaction(clip_id, req.emoji, req.author)
+    return {"status": "success"}
+
 @app.get("/api/clips")
 async def get_clips():
     return db.get_clips(50)
