@@ -48,6 +48,11 @@ class ClipRequest(BaseModel):
     author: str = "Anonymous"
     parent_id: int | None = None
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/avatars/agy.png")
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     clips = db.get_clips(50)
