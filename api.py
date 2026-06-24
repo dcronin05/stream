@@ -8,6 +8,28 @@ import uvicorn
 import os
 import uuid
 import base64
+import boto3
+from botocore.exceptions import ClientError
+
+S3_ENDPOINT = os.getenv("S3_ENDPOINT")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
+S3_BUCKET = os.getenv("S3_BUCKET", "stream-media")
+S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL")
+
+s3_client = None
+if S3_ENDPOINT and S3_ACCESS_KEY and S3_SECRET_KEY:
+    try:
+        s3_client = boto3.client('s3', endpoint_url=S3_ENDPOINT, aws_access_key_id=S3_ACCESS_KEY, aws_secret_access_key=S3_SECRET_KEY, region_name="us-east-1")
+        try:
+            s3_client.head_bucket(Bucket=S3_BUCKET)
+        except ClientError:
+            s3_client.create_bucket(Bucket=S3_BUCKET)
+            # Set public read policy for the bucket
+            policy = f'{{"Version":"2012-10-17","Statement":[{{"Effect":"Allow","Principal":{{"AWS":["*"]}},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::{S3_BUCKET}/*"]}}]}}'
+            s3_client.put_bucket_policy(Bucket=S3_BUCKET, Policy=policy)
+    except Exception as e:
+        print("S3 Init Error:", e)
 
 os.makedirs("data/uploads", exist_ok=True)
 
@@ -88,13 +110,27 @@ async def create_clip(clip: ClipRequest, request: Request):
             
             image_data = base64.b64decode(encoded)
             filename = f"{uuid.uuid4().hex}.{ext}"
-            os.makedirs("data/uploads", exist_ok=True)
-            filepath = os.path.join("data/uploads", filename)
             
-            with open(filepath, "wb") as f:
-                f.write(image_data)
-            
-            content = f"/static/uploads/{filename}" # We will mount this later
+            if s3_client:
+                # Upload to MinIO S3
+                s3_client.put_object(
+                    Bucket=S3_BUCKET,
+                    Key=filename,
+                    Body=image_data,
+                    ContentType=f"image/{ext}"
+                )
+                if S3_PUBLIC_URL:
+                    content = f"{S3_PUBLIC_URL}/{S3_BUCKET}/{filename}"
+                else:
+                    content = f"{S3_ENDPOINT}/{S3_BUCKET}/{filename}"
+            else:
+                # Local volume fallback
+                os.makedirs("data/uploads", exist_ok=True)
+                filepath = os.path.join("data/uploads", filename)
+                with open(filepath, "wb") as f:
+                    f.write(image_data)
+                content = f"/static/uploads/{filename}"
+                
         except Exception as e:
             print("Failed to save image:", e)
             item_type = "text" # Fallback
