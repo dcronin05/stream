@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -88,8 +90,17 @@
                 document.getElementById('authorInput').value = savedAuthor;
             }
 
+            // Configure marked with highlight.js
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                },
+                langPrefix: 'hljs language-'
+            });
+
             // Render Markdown
-            document.querySelectorAll('.clip-content.markdown-body').forEach(el => {
+            document.querySelectorAll('.markdown-body').forEach(el => {
                 if (el.dataset.raw) {
                     el.innerHTML = marked.parse(el.dataset.raw);
                 }
