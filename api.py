@@ -175,6 +175,20 @@ async def toggle_reaction(clip_id: int, req: ReactionRequest):
     db.update_reaction(clip_id, req.emoji, req.author)
     return {"status": "success"}
 
+from fastapi.responses import StreamingResponse
+import mimetypes
+
+@app.get("/api/media/{bucket}/{filename}")
+async def get_media(bucket: str, filename: str):
+    if not s3_client:
+        return HTMLResponse(status_code=404)
+    try:
+        response = s3_client.get_object(Bucket=bucket, Key=filename)
+        mt, _ = mimetypes.guess_type(filename)
+        return StreamingResponse(response['Body'], media_type=mt or "application/octet-stream")
+    except Exception as e:
+        return HTMLResponse(status_code=404)
+
 @app.get("/api/clips")
 async def get_clips():
     return db.get_clips(50)

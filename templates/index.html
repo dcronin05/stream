@@ -157,10 +157,13 @@
             const input = document.getElementById('clipInput');
             const authorInput = document.getElementById('authorInput');
             const content = input.value.trim();
-            const author = authorInput.value.trim() || 'Anonymous';
+            const authorVal = authorInput.value.trim();
+            const author = authorVal || localStorage.getItem('streamAuthor') || 'Anonymous';
             if (!content) return;
 
-            localStorage.setItem('streamAuthor', author);
+            if (authorVal && authorVal !== 'Anonymous') {
+                localStorage.setItem('streamAuthor', authorVal);
+            }
 
             const btn = document.getElementById('saveBtn');
             btn.innerText = "Posting...";
@@ -360,9 +363,12 @@
                         const authorInput = document.getElementById('authorInput');
                         
                         const comment = input.value.trim() || null;
-                        const author = authorInput.value.trim() || 'Anonymous';
+                        const authorVal = authorInput.value.trim();
+                        const author = authorVal || localStorage.getItem('streamAuthor') || 'Anonymous';
                         
-                        localStorage.setItem('streamAuthor', author);
+                        if (authorVal && authorVal !== 'Anonymous') {
+                            localStorage.setItem('streamAuthor', authorVal);
+                        }
 
                         const btn = document.getElementById('saveBtn');
                         btn.innerText = "Uploading...";
