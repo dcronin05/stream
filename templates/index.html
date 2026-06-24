@@ -127,6 +127,15 @@
                     el.innerHTML = marked.parse(el.dataset.raw);
                 }
             });
+
+            // Highlight user's reactions
+            const currentUser = localStorage.getItem('streamAuthor') || 'Anonymous';
+            document.querySelectorAll('.reaction-pill').forEach(pill => {
+                const authors = pill.getAttribute('title') || '';
+                if (authors.includes(currentUser)) {
+                    pill.classList.add('reacted');
+                }
+            });
         });
 
         async function saveClip() {
@@ -196,16 +205,47 @@
         });
 
         async function toggleReaction(clipId, emoji) {
+            document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('show'));
             const author = localStorage.getItem('streamAuthor') || 'Anonymous';
+            
+            const reactionBar = document.querySelector(`#picker-${clipId}`).parentElement.parentElement;
+            let existingPill = null;
+            reactionBar.querySelectorAll('.reaction-pill').forEach(pill => {
+                if (pill.querySelector('span:first-child').innerText === emoji) {
+                    existingPill = pill;
+                }
+            });
+
+            if (existingPill) {
+                const countSpan = existingPill.querySelector('span:last-child');
+                let count = parseInt(countSpan.innerText);
+                if (existingPill.classList.contains('reacted')) {
+                    existingPill.classList.remove('reacted');
+                    count--;
+                    if (count <= 0) {
+                        existingPill.remove();
+                    } else {
+                        countSpan.innerText = count;
+                    }
+                } else {
+                    existingPill.classList.add('reacted');
+                    count++;
+                    countSpan.innerText = count;
+                }
+            } else {
+                const newPill = document.createElement('div');
+                newPill.className = 'reaction-pill reacted';
+                newPill.onclick = () => toggleReaction(clipId, emoji);
+                newPill.innerHTML = `<span>${emoji}</span><span>1</span>`;
+                reactionBar.insertBefore(newPill, reactionBar.querySelector('div[style="position: relative;"]'));
+            }
+
             try {
-                const response = await fetch(`/api/clip/${clipId}/reaction`, {
+                await fetch(`/api/clip/${clipId}/reaction`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ emoji: emoji, author: author })
                 });
-                if (response.ok) {
-                    window.location.reload();
-                }
             } catch (err) {
                 console.error("Failed to toggle reaction:", err);
             }
