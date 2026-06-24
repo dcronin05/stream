@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            {% if brand_logo_exists %}
+            <img src="/static/brand/logo-horizontal.svg" alt="Stream" style="height: 42px; margin-bottom: 0.5rem;">
+            {% else %}
+            <h1 style="margin-bottom: 0.5rem; text-align: center;">Stream</h1>
+            {% endif %}
+            <p class="subtitle">Your private network feed</p>
+        </header>
+
+        <div class="new-clip-container">
+            <textarea id="clipInput" placeholder="What's happening? Paste text or images..." autofocus></textarea>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="text" id="authorInput" placeholder="Your Username" class="comment-input" style="flex: 1; margin-bottom: 0;">
+            </div>
+            <div class="btn-container">
+                <button id="saveBtn" onclick="saveClip()">Post</button>
+            </div>
+        </div>
+
+        <div class="clips-list" id="clipsList">
+            {% for clip in clips %}
+            <div class="clip-card" style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                <div class="clip-header">
+                    <div class="author-info">
+                        {% if clip.avatar_url %}
+                        <img src="{{ clip.avatar_url }}" class="avatar" style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                        <div class="avatar" style="width: 40px; height: 40px; background: {{ clip.color }}; color: white; border: none; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
+                            {{ clip.initial }}
+                        </div>
+                        {% endif %}
+                        <div class="author-meta">
+                            <span class="clip-source" style="font-size: 1.05rem; color: var(--text-main); font-weight: 700; background: none; padding: 0; text-transform: none;">
+                                {{ clip.author }}
+                            </span>
+                            <span class="clip-time">{{ clip.timestamp }} &middot; {{ clip.source }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if clip.comment %}
+                <div class="clip-comment markdown-body" id="comment-text-{{ clip.id }}" data-raw="{{ clip.comment | escape }}" style="margin-bottom: 0.75rem;"></div>
+                {% endif %}
+
+                {% if clip.item_type == 'image' %}
+                <div class="clip-image-container">
+                    <img src="{{ clip.content }}" alt="Posted image">
+                </div>
+                {% else %}
+                <div class="clip-content markdown-body" id="content-{{ clip.id }}" data-raw="{{ clip.content | escape }}"></div>
+                {% endif %}
+
+                <div class="clip-actions">
+                    <button class="action-btn copy-btn" onclick="copyText(this, 'content-{{ clip.id }}', '{{ clip.item_type }}', '{{ clip.content | escape }}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                        Copy
+                    </button>
+                    {% if clip.item_type == 'image' %}
+                    <a href="{{ clip.content }}" download="stream_image_{{ clip.id }}.png" class="action-link">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Original
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedAuthor = localStorage.getItem('streamAuthor');
+            if (savedAuthor) {
+                document.getElementById('authorInput').value = savedAuthor;
+            }
+
+            // Render Markdown
+            document.querySelectorAll('.clip-content.markdown-body').forEach(el => {
+                if (el.dataset.raw) {
+                    el.innerHTML = marked.parse(el.dataset.raw);
+                }
+            });
+        });
+
+        async function saveClip() {
+            const input = document.getElementById('clipInput');
+            const authorInput = document.getElementById('authorInput');
+            const content = input.value.trim();
+            const author = authorInput.value.trim() || 'Anonymous';
+            if (!content) return;
+
+            localStorage.setItem('streamAuthor', author);
+
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Posting...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/clip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content, source: "web-ui", comment: null, author: author })
+                });
+                
+                if (response.ok) {
+                    input.value = '';
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.error("Failed to post:", err);
+            } finally {
+                btn.innerText = "Post";
+                btn.disabled = false;
+            }
+        }
+
+        async function copyText(btn, elementId, itemType, contentStr) {
+            let text = contentStr;
+            if (itemType !== 'image') {
+                const el = document.getElementById(elementId);
+                if (el && !text) {
+                    text = el.dataset.raw || el.innerText;
+                }
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied`;
+                btn.classList.add('success');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('success');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+            }
+        }
+        
+        let lastKnownTopId = null;
+        async function checkForUpdates() {
+            try {
+                const response = await fetch('/api/clips?limit=1');
+                const clips = await response.json();
+                if (clips && clips.length > 0) {
+                    const latestId = clips[0].id;
+                    if (lastKnownTopId === null) {
+                        lastKnownTopId = latestId;
+                    } else if (latestId > lastKnownTopId) {
+                        location.reload();
+                    }
+                }
+            } catch (err) {}
+        }
+        
+        checkForUpdates();
+        setInterval(checkForUpdates, 3000);
+
+        document.getElementById('clipInput').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                saveClip();
+            }
+        });
+
+        document.addEventListener('paste', async function(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        const base64data = event.target.result;
+                        const input = document.getElementById('clipInput');
+                        const authorInput = document.getElementById('authorInput');
+                        
+                        const comment = input.value.trim() || null;
+                        const author = authorInput.value.trim() || 'Anonymous';
+                        
+                        localStorage.setItem('streamAuthor', author);
+
+                        const btn = document.getElementById('saveBtn');
+                        btn.innerText = "Uploading...";
+                        btn.disabled = true;
+
+                        try {
+                            const response = await fetch('/api/clip', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    content: base64data, 
+                                    source: "web-ui", 
+                                    comment: comment,
+                                    item_type: "image",
+                                    author: author
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                input.value = '';
+                                window.location.reload();
+                            }
+                        } catch (err) {
+                            console.error("Failed to upload image:", err);
+                        } finally {
+                            btn.innerText = "Post";
+                            btn.disabled = false;
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                    break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Stream
+
+A self-hosted, sleek, mobile-first private social feed and universal clipboard. 
+Built with FastAPI, SQLite, and vanilla HTML/CSS/JS.
+
+## Features
+- **Real-time Feed:** Post text, images, and links instantly. Feed auto-updates via lightweight polling.
+- **Dynamic Identity:** Posts are attributed to usernames. The app generates beautiful fallback gradient avatars for any username.
+- **Custom Branding:** Drop your own SVG logo and avatars in the `static` folders, and the app will automatically integrate them.
+- **MCP Integration:** Comes with an SSE connection to act as a Model Context Protocol server.
+
+## Getting Started
+
+1. Clone the repository.
+2. Ensure you have Docker installed.
+3. Add any optional custom branding:
+   - Place your profile pictures in `static/avatars/` as `<username>.png`
+   - Place a horizontal logo in `static/brand/` as `logo-horizontal.svg`
+4. Run `docker compose up -d`
+5. Access the Web UI at `http://localhost:8002`
+
+## Data Storage
+All databases and uploaded images are safely stored in the `data/` directory, which is ignored by `.gitignore` and mapped via Docker volumes.

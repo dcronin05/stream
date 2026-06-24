@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  stream:
+    build: .
+    container_name: stream
+    restart: unless-stopped
+    ports:
+      - "8002:8000"  # Web UI
+      - "8003:8001"  # MCP SSE
+    volumes:
+      - ./data:/app/data
