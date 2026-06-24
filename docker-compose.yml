@@ -10,5 +10,8 @@ services:
       - "8003:8001"  # MCP SSE
     volumes:
       - ./data:/app/data
+      - ./static:/app/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
