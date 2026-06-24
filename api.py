@@ -117,19 +117,25 @@ async def create_clip(clip: ClipRequest, request: Request):
             image_data = base64.b64decode(encoded)
             filename = f"{uuid.uuid4().hex}.{ext}"
             
+            upload_success = False
             if s3_client:
-                # Upload to MinIO S3
-                s3_client.put_object(
-                    Bucket=S3_BUCKET,
-                    Key=filename,
-                    Body=image_data,
-                    ContentType=f"image/{ext}"
-                )
-                if S3_PUBLIC_URL:
-                    content = f"{S3_PUBLIC_URL}/{S3_BUCKET}/{filename}"
-                else:
-                    content = f"{S3_ENDPOINT}/{S3_BUCKET}/{filename}"
-            else:
+                try:
+                    # Upload to MinIO S3
+                    s3_client.put_object(
+                        Bucket=S3_BUCKET,
+                        Key=filename,
+                        Body=image_data,
+                        ContentType=f"image/{ext}"
+                    )
+                    if S3_PUBLIC_URL:
+                        content = f"{S3_PUBLIC_URL}/{S3_BUCKET}/{filename}"
+                    else:
+                        content = f"{S3_ENDPOINT}/{S3_BUCKET}/{filename}"
+                    upload_success = True
+                except Exception as s3_err:
+                    print(f"S3 Upload failed, falling back to local: {s3_err}")
+                    
+            if not upload_success:
                 # Local volume fallback
                 os.makedirs("data/uploads", exist_ok=True)
                 filepath = os.path.join("data/uploads", filename)
@@ -138,7 +144,7 @@ async def create_clip(clip: ClipRequest, request: Request):
                 content = f"/static/uploads/{filename}"
                 
         except Exception as e:
-            print("Failed to save image:", e)
+            print(f"Error parsing image: {e}")
             item_type = "text" # Fallback
 
     db.add_clip(content, source, clip.comment, item_type, author, clip.parent_id)

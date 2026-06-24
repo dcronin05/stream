@@ -26,8 +26,12 @@ def clear_clipboard() -> str:
     return "Clipboard cleared."
 
 if __name__ == "__main__":
-    # Start the SSE server on port 8001
-    # Agents can connect via http://clip.cronin.one:8001/sse
-    mcp.settings.host = "0.0.0.0"
-    mcp.settings.port = 8001
-    mcp.run(transport="sse")
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--sse":
+        # Start the SSE server on port 8001
+        mcp.settings.host = "0.0.0.0"
+        mcp.settings.port = 8001
+        mcp.run(transport="sse")
+    else:
+        # Default to stdio for local agent integrations
+        mcp.run(transport="stdio")

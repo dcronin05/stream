@@ -24,7 +24,7 @@ def sync_clips():
     if not os.path.exists(DB_PATH):
         return
         
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=60.0)
     conn.execute("PRAGMA journal_mode=WAL;")
     c = conn.cursor()
     c.execute('SELECT id, content, source, timestamp, comment, item_type, author FROM clips WHERE id > ? ORDER BY id ASC', (last_id,))
