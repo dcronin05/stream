@@ -1,0 +1,33 @@
+stages:
+  - build
+  - notify
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+build-and-push:
+  image: docker:24.0.5
+  stage: build
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+
+notify-stream:
+  image: curlimages/curl:latest
+  stage: notify
+  script:
+    - |
+      curl -X POST http://172.17.0.1:8002/api/clip \
+      -H "Content-Type: application/json" \
+      -d '{
+        "content": "🚀 **Stream Pipeline Successful!**\nNew image built and pushed to the local GitLab registry.\nCommit: `'"$CI_COMMIT_SHORT_SHA"'`\nAuthor: '"$GITLAB_USER_NAME"'",
+        "author": "GitLab Runner",
+        "source": "ci-pipeline",
+        "item_type": "text"
+      }'
+  needs: ["build-and-push"]
