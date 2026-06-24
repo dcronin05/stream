@@ -11,6 +11,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./static:/app/static
+      - ./api.py:/app/api.py
+      - ./templates:/app/templates
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
