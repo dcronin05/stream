@@ -141,7 +141,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     opacity: 0;
     transform: translateY(20px);
@@ -316,7 +316,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
     gap: 0.5rem;
     margin-top: 1rem;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border-color);
 }
 
 .reaction-pill {
@@ -325,7 +325,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
     gap: 0.35rem;
     padding: 0.25rem 0.6rem;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     font-size: 0.85rem;
     color: var(--text-main);
@@ -355,21 +355,24 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
     border-radius: 50%;
     background: transparent;
     border: 1px dashed var(--text-muted);
-    color: var(--text-muted);
+    color: var(--text-main);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
+.add-reaction-btn svg {
+    stroke: var(--text-main);
+}
+
 .add-reaction-btn:hover {
     border-color: var(--text-main);
-    color: var(--text-main);
     background: rgba(255, 255, 255, 0.05);
 }
 
 .reaction-picker {
     position: absolute;
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 0.5rem;
     display: none;
