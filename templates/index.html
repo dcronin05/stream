@@ -430,16 +430,21 @@
                         btn.disabled = true;
 
                         try {
+                            const payload = { 
+                                content: base64data, 
+                                source: "web-ui", 
+                                comment: comment,
+                                item_type: "image",
+                                author: author
+                            };
+                            if (window.currentParentId) {
+                                payload.parent_id = window.currentParentId;
+                            }
+
                             const response = await fetch('/api/clip', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    content: base64data, 
-                                    source: "web-ui", 
-                                    comment: comment,
-                                    item_type: "image",
-                                    author: author
-                                })
+                                body: JSON.stringify(payload)
                             });
                             
                             if (response.ok) {
