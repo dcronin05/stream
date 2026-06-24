@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   stream:
-    build: .
+    image: ghcr.io/dcronin05/stream:latest
     container_name: stream
     restart: unless-stopped
     ports:
