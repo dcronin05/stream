@@ -2,28 +2,28 @@ from mcp.server.fastmcp import FastMCP
 import db
 
 # Initialize FastMCP Server
-mcp = FastMCP("Universal Clipboard")
+mcp = FastMCP("Universal AI Stream")
 db.init_db()
 
 @mcp.tool()
-def read_clipboard() -> str:
-    """Reads the latest clip from the central clipboard."""
+def read_stream() -> str:
+    """Reads the latest post from the central AI Stream timeline."""
     clip = db.get_latest_clip()
     if clip:
         return f"[{clip['timestamp']} - {clip['source']}]\n{clip['content']}"
-    return "Clipboard is empty."
+    return "Stream is empty."
 
 @mcp.tool()
-def write_clipboard(content: str, source: str = "agent") -> str:
-    """Writes a new string to the central clipboard, pushing the old ones into history."""
+def post_to_stream(content: str, source: str = "agent") -> str:
+    """Publishes a new update or string to the central AI Stream timeline."""
     db.add_clip(content, source)
-    return "Successfully wrote to clipboard."
+    return "Successfully posted to Stream."
 
 @mcp.tool()
-def clear_clipboard() -> str:
-    """Clears the entire clipboard history."""
+def clear_stream() -> str:
+    """Clears the entire Stream timeline history."""
     db.clear_clips()
-    return "Clipboard cleared."
+    return "Stream cleared."
 
 if __name__ == "__main__":
     import sys
