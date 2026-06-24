@@ -42,11 +42,17 @@ async def read_root(request: Request):
     brand_logo_exists = os.path.exists("static/brand/logo-horizontal.svg")
     return templates.TemplateResponse(request=request, name="index.html", context={"clips": clips, "brand_logo_exists": brand_logo_exists})
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi.responses import FileResponse
+    return FileResponse("static/brand/logo-icon.svg")
+
 @app.post("/api/clip")
 async def create_clip(clip: ClipRequest, request: Request):
     content = clip.content
     item_type = clip.item_type
     source = clip.source
+    author = clip.author
 
     if source == "web-ui":
         ua = request.headers.get("user-agent", "").lower()
@@ -60,6 +66,11 @@ async def create_clip(clip: ClipRequest, request: Request):
             source = "web-ui (Windows)"
         elif "linux" in ua:
             source = "web-ui (Linux)"
+            
+    # Guess the user based on the device if they are anonymous
+    if author == "Anonymous":
+        if "macOS" in source or "iOS" in source or "Windows" in source:
+            author = "dcronin05" # Default to Daniel for known personal devices
 
     if item_type == "image" and content.startswith("data:image/"):
         try:
@@ -85,7 +96,7 @@ async def create_clip(clip: ClipRequest, request: Request):
             print("Failed to save image:", e)
             item_type = "text" # Fallback
 
-    db.add_clip(content, source, clip.comment, item_type, clip.author)
+    db.add_clip(content, source, clip.comment, item_type, author)
     return {"status": "success"}
 
 class CommentRequest(BaseModel):
