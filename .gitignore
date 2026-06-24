@@ -1,9 +1,5 @@
 data/*
 !data/.gitkeep
-static/avatars/*
-!static/avatars/.gitkeep
-static/brand/*
-!static/brand/.gitkeep
 __pycache__/
 *.pyc
 .env
