@@ -393,6 +393,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
 
 .reaction-picker {
     position: absolute;
+    bottom: 100%;
+    margin-bottom: 0.5rem;
+    left: 0;
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
