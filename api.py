@@ -46,6 +46,7 @@ class ClipRequest(BaseModel):
     comment: str | None = None
     item_type: str = "text"
     author: str = "Anonymous"
+    parent_id: int | None = None
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -135,7 +136,7 @@ async def create_clip(clip: ClipRequest, request: Request):
             print("Failed to save image:", e)
             item_type = "text" # Fallback
 
-    db.add_clip(content, source, clip.comment, item_type, author)
+    db.add_clip(content, source, clip.comment, item_type, author, clip.parent_id)
     return {"status": "success"}
 
 class CommentRequest(BaseModel):

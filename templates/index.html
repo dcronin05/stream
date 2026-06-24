@@ -49,7 +49,12 @@
                             <span class="clip-source" style="font-size: 1.05rem; color: var(--text-main); font-weight: 700; background: none; padding: 0; text-transform: none;">
                                 {{ clip.author }}
                             </span>
-                            <span class="clip-time">{{ clip.timestamp }} &middot; {{ clip.source }}</span>
+                            <span class="clip-time">
+                                {{ clip.timestamp }} &middot; {{ clip.source }}
+                                {% if clip.parent_id %}
+                                &middot; <span style="color: var(--accent-primary);">↩ Replying to #{{ clip.parent_id }}</span>
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -77,6 +82,10 @@
                         Edit
                     </button>
                     {% endif %}
+                    <button class="action-btn reply-btn" onclick="startReply({{ clip.id }})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
+                        Reply
+                    </button>
                     {% if clip.item_type == 'image' %}
                     <a href="{{ clip.content }}" download="stream_image_{{ clip.id }}.png" class="action-link">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -157,11 +166,21 @@
             btn.innerText = "Posting...";
             btn.disabled = true;
 
+            const payload = { 
+                content: content, 
+                source: "web-ui", 
+                comment: null, 
+                author: author 
+            };
+            if (window.currentParentId) {
+                payload.parent_id = window.currentParentId;
+            }
+
             try {
                 const response = await fetch('/api/clip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: content, source: "web-ui", comment: null, author: author })
+                    body: JSON.stringify(payload)
                 });
                 
                 if (response.ok) {
@@ -235,6 +254,13 @@
             } catch (err) {
                 console.error("Failed to edit:", err);
             }
+        }
+
+        function startReply(clipId) {
+            document.getElementById('clip-input').focus();
+            document.getElementById('clip-input').placeholder = "Replying to clip #" + clipId + "...";
+            // We can attach parent_id to a hidden field or window variable
+            window.currentParentId = clipId;
         }
 
         function togglePicker(e, clipId) {

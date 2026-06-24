@@ -22,33 +22,54 @@ def init_db():
             source TEXT NOT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             comment TEXT,
-            item_type TEXT DEFAULT 'text'
-        )
-    ''')
     try:
-        c.execute('ALTER TABLE clips ADD COLUMN comment TEXT')
-    except sqlite3.OperationalError:
-        pass # Column already exists
-    try:
-        c.execute("ALTER TABLE clips ADD COLUMN item_type TEXT DEFAULT 'text'")
-    except sqlite3.OperationalError:
-        pass # Column already exists
-    try:
-        c.execute("ALTER TABLE clips ADD COLUMN author TEXT DEFAULT 'Anonymous'")
-    except sqlite3.OperationalError:
-        pass # Column already exists
-    try:
-        c.execute("ALTER TABLE clips ADD COLUMN reactions TEXT DEFAULT '{}'")
-    except sqlite3.OperationalError:
-        pass # Column already exists
-    conn.commit()
-    conn.close()
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS clips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                source TEXT DEFAULT 'web-ui',
+                comment TEXT,
+                item_type TEXT DEFAULT 'text',
+                author TEXT DEFAULT 'Anonymous',
+                reactions TEXT DEFAULT '{}',
+                parent_id INTEGER DEFAULT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Add columns if they don't exist (migration)
+        try:
+            c.execute('ALTER TABLE clips ADD COLUMN comment TEXT')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute("ALTER TABLE clips ADD COLUMN item_type TEXT DEFAULT 'text'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute("ALTER TABLE clips ADD COLUMN author TEXT DEFAULT 'Anonymous'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute("ALTER TABLE clips ADD COLUMN reactions TEXT DEFAULT '{}'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE clips ADD COLUMN parent_id INTEGER DEFAULT NULL')
+        except sqlite3.OperationalError:
+            pass
+        conn.commit()
+    finally:
+        conn.close()
 
-def add_clip(content: str, source: str = "api", comment: str = None, item_type: str = "text", author: str = "Anonymous"):
+def add_clip(content: str, source: str = "web-ui", comment: str = None, item_type: str = "text", author: str = "Anonymous", parent_id: int = None):
     conn = get_connection()
     try:
         c = conn.cursor()
-        c.execute('INSERT INTO clips (content, source, comment, item_type, author) VALUES (?, ?, ?, ?, ?)', (content, source, comment, item_type, author))
+        c.execute(
+            'INSERT INTO clips (content, source, comment, item_type, author, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
+            (content, source, comment, item_type, author, parent_id)
+        )
         conn.commit()
         time.sleep(0.05)  # Yield write-lock
     finally:
@@ -110,7 +131,7 @@ def get_clips(limit: int = 50):
     conn = get_connection()
     try:
         c = conn.cursor()
-        c.execute('SELECT id, content, source, timestamp, comment, item_type, author, reactions FROM clips ORDER BY timestamp DESC LIMIT ?', (limit,))
+        c.execute('SELECT id, content, source, timestamp, comment, item_type, author, reactions, parent_id FROM clips ORDER BY timestamp DESC LIMIT ?', (limit,))
         clips = []
         for row in c.fetchall():
             try:
@@ -125,7 +146,8 @@ def get_clips(limit: int = 50):
                 "comment": row[4],
                 "item_type": row[5] or "text",
                 "author": row[6] or "Anonymous",
-                "reactions": reactions
+                "reactions": reactions,
+                "parent_id": row[8]
             })
         return clips
     finally:

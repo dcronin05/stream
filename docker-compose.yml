@@ -10,3 +10,5 @@ services:
       - "8003:8001"  # MCP SSE
     volumes:
       - ./data:/app/data
+    env_file:
+      - .env
