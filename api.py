@@ -55,8 +55,11 @@ async def favicon():
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    clips = db.get_clips(50)
+    clips = db.get_clips(100) # Fetch more for better threading
+    
+    # Process avatars and initialize replies
     for c in clips:
+        c["replies"] = []
         author = c.get("author", "Anonymous")
         if os.path.exists(f"static/avatars/{author}.png"):
             c["avatar_url"] = f"/static/avatars/{author}.png"
@@ -67,8 +70,32 @@ async def read_root(request: Request):
             c["color"] = colors[hash_val % len(colors)]
             c["initial"] = author[0].upper() if author else "?"
             
+    clip_map = {c["id"]: c for c in clips}
+    threaded_clips = []
+    seen_threads = set()
+
+    for c in clips:
+        parent_id = c.get("parent_id")
+        if parent_id and parent_id in clip_map:
+            # It's a reply and we have the parent
+            clip_map[parent_id]["replies"].append(c)
+            # Make sure the parent is in threaded_clips if we haven't added it yet
+            # (This naturally bubbles active threads to the top)
+            if parent_id not in seen_threads:
+                threaded_clips.append(clip_map[parent_id])
+                seen_threads.add(parent_id)
+        else:
+            # It's a top-level clip (or an orphaned reply whose parent is too old)
+            if c["id"] not in seen_threads:
+                threaded_clips.append(c)
+                seen_threads.add(c["id"])
+
+    # Reverse replies so they appear chronologically (oldest to newest) under the parent
+    for c in threaded_clips:
+        c["replies"].reverse()
+            
     brand_logo_exists = os.path.exists("static/brand/logo-horizontal.svg")
-    return templates.TemplateResponse(request=request, name="index.html", context={"clips": clips, "brand_logo_exists": brand_logo_exists})
+    return templates.TemplateResponse(request=request, name="index.html", context={"clips": threaded_clips, "brand_logo_exists": brand_logo_exists})
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():

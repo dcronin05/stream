@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css?v=4">
+    <link rel="stylesheet" href="/static/styles.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -114,7 +114,62 @@
                             <span class="picker-emoji" onclick="toggleReaction({{ clip.id }}, '🚀')">🚀</span>
                         </div>
                     </div>
+                    </div>
                 </div>
+
+                {% if clip.replies and clip.replies|length > 0 %}
+                <div class="replies-container" style="margin-top: 1rem; padding-left: 1rem; border-left: 2px solid var(--border-color);">
+                    {% for reply in clip.replies %}
+                    <div class="clip-card reply-card" id="clip-{{ reply.id }}" style="padding: 0.75rem; margin-top: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <div class="clip-header" style="margin-bottom: 0.5rem;">
+                            <div class="author-info">
+                                {% if reply.avatar_url %}
+                                <img src="{{ reply.avatar_url }}" alt="{{ reply.author }}" class="avatar" style="width: 24px; height: 24px;">
+                                {% else %}
+                                <div class="avatar" style="background-color: {{ reply.color }}; width: 24px; height: 24px; font-size: 0.7rem;">{{ reply.initial }}</div>
+                                {% endif %}
+                                <div class="author-details">
+                                    <div class="author-name" style="font-size: 0.85rem;">{{ reply.author }}</div>
+                                    <div class="clip-meta" style="font-size: 0.7rem;">{{ reply.timestamp }} &middot; {{ reply.source }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clip-content markdown-body" id="content-{{ reply.id }}" data-raw="{{ reply.content }}" style="font-size: 0.9rem;">
+                            {% if reply.item_type != 'image' %}
+                                {{ reply.content }}
+                            {% endif %}
+                        </div>
+                        {% if reply.item_type == 'image' %}
+                        <div class="clip-image-container" style="margin-top: 0.25rem;">
+                            <img src="{{ reply.content }}" alt="Reply Image" loading="lazy" style="max-height: 200px; width: auto; border-radius: 6px;">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="reaction-bar" style="margin-top: 0.5rem; padding-top: 0.5rem;">
+                            {% for emoji, authors in reply.reactions.items() %}
+                            <div class="reaction-pill" onclick="toggleReaction({{ reply.id }}, '{{ emoji }}')" title="{{ authors | join(', ') }}">
+                                <span>{{ emoji }}</span>
+                                <span>{{ authors | length }}</span>
+                            </div>
+                            {% endfor %}
+                            <div style="position: relative;">
+                                <button class="add-reaction-btn" onclick="togglePicker(event, {{ reply.id }})" style="width: 24px; height: 24px;">
+                                    <span style="font-size: 1rem; line-height: 1; font-weight: 600;">+</span>
+                                </button>
+                                <div class="reaction-picker" id="picker-{{ reply.id }}">
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '👍')">👍</span>
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '❤️')">❤️</span>
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '😂')">😂</span>
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '🔥')">🔥</span>
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '👀')">👀</span>
+                                    <span class="picker-emoji" onclick="toggleReaction({{ reply.id }}, '🚀')">🚀</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -260,8 +315,8 @@
         }
 
         function startReply(clipId) {
-            document.getElementById('clip-input').focus();
-            document.getElementById('clip-input').placeholder = "Replying to clip #" + clipId + "...";
+            document.getElementById('clipInput').focus();
+            document.getElementById('clipInput').placeholder = "Replying to clip #" + clipId + "...";
             // We can attach parent_id to a hidden field or window variable
             window.currentParentId = clipId;
         }
