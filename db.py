@@ -63,15 +63,19 @@ def get_latest_clip():
     finally:
         conn.close()
 
-def update_clip_comment(clip_id: int, comment: str):
-    conn = get_connection()
-    try:
-        c = conn.cursor()
-        c.execute('UPDATE clips SET comment = ? WHERE id = ?', (comment, clip_id))
+def update_clip_comment(clip_id: int, comment: str | None):
+    with sqlite3.connect(DB_PATH, timeout=60.0) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("UPDATE clips SET comment = ? WHERE id = ?", (comment, clip_id))
         conn.commit()
-        time.sleep(0.05)
-    finally:
-        conn.close()
+    time.sleep(0.05)
+
+def update_clip_content(clip_id: int, content: str):
+    with sqlite3.connect(DB_PATH, timeout=60.0) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("UPDATE clips SET content = ? WHERE id = ?", (content, clip_id))
+        conn.commit()
+    time.sleep(0.05)
 
 def update_reaction(clip_id: int, emoji: str, author: str):
     conn = get_connection()

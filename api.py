@@ -54,23 +54,26 @@ async def create_clip(clip: ClipRequest, request: Request):
     source = clip.source
     author = clip.author
 
+    # Guess the user based on the device if they are anonymous
+    if author == "Anonymous" or not author:
+        ua = request.headers.get("user-agent", "").lower()
+        if "macintosh" in ua or "iphone" in ua or "ipad" in ua or "windows" in ua:
+            author = "dcronin05"
+
     if source == "web-ui":
         ua = request.headers.get("user-agent", "").lower()
         if "macintosh" in ua or "mac os x" in ua:
-            source = "web-ui (macOS)"
-        elif "iphone" in ua or "ipad" in ua:
-            source = "web-ui (iOS)"
-        elif "android" in ua:
-            source = "web-ui (Android)"
+            source = f"{author}'s Mac Mini" if author == "dcronin05" else "Mac"
+        elif "iphone" in ua:
+            source = f"{author}'s iPhone" if author == "dcronin05" else "iPhone"
+        elif "ipad" in ua:
+            source = f"{author}'s iPad" if author == "dcronin05" else "iPad"
         elif "windows" in ua:
-            source = "web-ui (Windows)"
+            source = f"{author}'s PC" if author == "dcronin05" else "Windows PC"
+        elif "android" in ua:
+            source = f"{author}'s Android" if author == "dcronin05" else "Android"
         elif "linux" in ua:
-            source = "web-ui (Linux)"
-            
-    # Guess the user based on the device if they are anonymous
-    if author == "Anonymous":
-        if "macOS" in source or "iOS" in source or "Windows" in source:
-            author = "dcronin05" # Default to Daniel for known personal devices
+            source = "Linux"
 
     if item_type == "image" and content.startswith("data:image/"):
         try:
@@ -105,6 +108,14 @@ class CommentRequest(BaseModel):
 @app.put("/api/clip/{clip_id}/comment")
 async def update_comment(clip_id: int, req: CommentRequest):
     db.update_clip_comment(clip_id, req.comment)
+    return {"status": "success"}
+
+class EditRequest(BaseModel):
+    content: str
+
+@app.put("/api/clip/{clip_id}")
+async def edit_clip(clip_id: int, req: EditRequest):
+    db.update_clip_content(clip_id, req.content)
     return {"status": "success"}
 
 class ReactionRequest(BaseModel):
