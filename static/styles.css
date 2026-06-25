@@ -23,15 +23,13 @@ body {
     color: var(--text-main);
     line-height: 1.6;
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
 }
 
 .container {
     width: 100%;
     max-width: 680px;
     padding: 1rem;
-    margin-top: 1rem;
+    margin: 1rem auto;
 }
 
 header {
@@ -207,6 +205,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow
     color: var(--text-main);
     overflow-x: auto;
     word-break: break-word;
+.clip-content.markdown-body, .clip-comment.markdown-body {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    word-wrap: break-word;
 }
 .clip-content.markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
 .clip-content.markdown-body p:last-child { margin-bottom: 0; }
